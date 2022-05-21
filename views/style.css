@@ -1,0 +1,12 @@
+.player {
+    height: 100px;
+    width: 100px;
+    background-color: red;
+    position: absolute;
+    
+}
+
+#self {
+    background-color: green;
+    z-index: 2;
+}

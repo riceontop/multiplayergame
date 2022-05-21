@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="#">
+    <title>Game</title>
+</head>
+<body>
+    <div id="arena">
+        
+    </div>
+
+    <script>
+        var players = {}
+
+        function updatePlayer( player ) {
+            player.element.style.top = player.y + "px"
+            player.element.style.left = player.x + "px"
+        }
+
+        function removePlayer(id) {
+            console.log("player " + id + " left")
+            players[id].element.remove()
+            delete players[id]
+        }
+
+        function createPlayer( id ) {
+            if( players[id] ) {
+                console.log("duplicate id "+id)
+                return players[id];
+            }
+
+            var player = { id: id, x: 100, y: 100 }
+            var el = document.createElement('div')
+            el.innerText = id
+            player.element = el
+            el.classList.add("player")
+            document.getElementById("arena").append(el)
+            players[player.id] = player
+            return player
+        }
+
+        window.addEventListener("load", () => {
+            Socket = new WebSocket("ws://localhost:8888/ws")
+            
+            Socket.onmessage = (event) => {
+                var msg = JSON.parse(event.data)
+
+                switch( msg.action ) {
+                    case 'join':
+                        var player = createPlayer( msg.id )
+                        console.log("got player id " + msg.id )
+                        player.element.id = "self"
+                        document.addEventListener('keydown', (e)=>{
+                            switch(e.key) {
+                                case 'ArrowLeft':
+                                    player.x -= 1
+                                    break
+                                case 'ArrowRight':
+                                    player.x += 1
+                                    break
+                                case 'ArrowDown':
+                                    player.y += 1
+                                    break
+                                case 'ArrowUp':
+                                    player.y -= 1
+                                    break
+                            }
+                            Socket.send( JSON.stringify({
+                                action: "update",
+                                id: player.id,
+                                x: player.x,
+                                y: player.y
+                            }))
+                        })
+                        for( other_id in msg.others ) {
+                            console.log("other player id " + other_id )
+                            var other_player = createPlayer( other_id )
+                        }
+                        break
+                    case 'announce':
+                        console.log("player joined with id " + msg.id)
+                        var joined_player = createPlayer( msg.id )
+                        break
+                    case 'update':
+                        var player = players[msg.id]
+                        if( player ) {
+                            player.x = msg.x
+                            player.y = msg.y
+                            updatePlayer( player )
+                        }
+                        break
+                    case "leave":
+                        removePlayer(msg.id)
+
+                }
+            }
+        })
+    </script>
+</body>
+</html>
